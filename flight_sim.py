@@ -8,12 +8,12 @@ PLANE = [
     "  ------",
     "  | | # \\                                      |",
     "  | ____ \\_________|----^\"|\"\"\"\"\"|\"\\___________ |",
-    "   \\___\\   FO + 94 >>    `\"\"\"\"\"\"\"     =====  \"|D",
-    "      ^^-------____--\"\"\"\"\"\"\"\"+\"\"--_  __--\"|",
-    "                  `\"\"|\"-->####)+---|`\"\"     |",
-    "                                \\  \\",
-    "                               <- O -)",
-    "                                 `'\""
+    "    \\___\\   FO + 94 >>    `\"\"\"\"\"\"\"     =====  \"|D",
+    "           ^^-------____--\"\"\"\"\"\"\"\"+\"\"--_  __--\"|",
+    "                     `\"\"|\"-->####)+---|`\"\"     |",
+    "                                   \\  \\",
+    "                                  <- O -)",
+    "                                    `'\""
 ]
 
 CLOUD_TEMPLATE = [
@@ -74,9 +74,13 @@ def main(stdscr):
     title = "ASCII Flight Sim"
     subtitle = "Fly the plane with the arrows (up, down) to avoid the stormy clouds. At the third storm, you loose. Use 'q' to quit."
     credit_assets = "Game developed by Luis Natera. Plane by: Clarence Speer Padilla // Cloud by: https://www.asciiart.eu/nature/clouds"
-    frame_delay = 0.05      # initial delay (slower)
+    frame_delay = 0.02      # initial delay (slower)
     score = 0
     storm_count = 0
+    min_cloud_interval = 0.5
+    max_cloud_interval = 4.0
+    cloud_difficulty_rate = 0.0005  # how fast the cloud interval decreases
+    start_time = time.time()
     curses.curs_set(0)
     stdscr.nodelay(True)
     stdscr.timeout(1)
@@ -114,7 +118,16 @@ def main(stdscr):
             break
 
         # Clouds management
-        if time.time() - last_cloud_time > random.uniform(2, 4):
+        # Dynamic cloud spawn rate
+        elapsed_time = time.time() - start_time
+
+        # Gradually reduce the interval over time
+        adjusted_max = max(1.5, max_cloud_interval - elapsed_time * cloud_difficulty_rate)
+        adjusted_min = max(0.3, min_cloud_interval)
+
+        next_cloud_interval = random.uniform(adjusted_min, adjusted_max)
+
+        if time.time() - last_cloud_time > next_cloud_interval:
             clouds.append(Cloud(max_y, max_x))
             last_cloud_time = time.time()
 
@@ -138,7 +151,7 @@ def main(stdscr):
         # Check for game over condition
         if storm_count >= 3:
             stdscr.addstr(max_y // 2, center_x - len("Game Over") // 2, "Game Over", curses.A_BOLD)
-            stdscr.addstr(max_y // 2 + 1, center_x - len("Press any key to restart") // 2, "Press any key to restart")
+            stdscr.addstr(max_y // 2 + 1, center_x - len("Press 'r' to restart") // 2, "Press 'r' to restart")
             stdscr.addstr(max_y // 2 + 2, center_x - len("Press 'q' to quit") // 2, "Press 'q' to quit")
             
             stdscr.refresh()
@@ -146,7 +159,7 @@ def main(stdscr):
                 key = stdscr.getch()
                 if key == ord('q'):
                     return
-                elif key != -1:
+                elif key == ord('r'):
                     # Reset game state
                     score = 0
                     storm_count = 0
